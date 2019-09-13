@@ -12,12 +12,6 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/send", sendMessage)
-
-	log.Fatal(http.ListenAndServe(":80", nil))
-}
-
-func sendMessage(w http.ResponseWriter, r *http.Request) {
 	//create new WhatsApp connection
 	wac, err := whatsapp.NewConn(5 * time.Second)
 	if err != nil {
@@ -33,20 +27,23 @@ func sendMessage(w http.ResponseWriter, r *http.Request) {
 
 	<-time.After(3 * time.Second)
 
-	msg := whatsapp.TextMessage{
-		Info: whatsapp.MessageInfo{
-			RemoteJid: r.FormValue("receiver")+"@s.whatsapp.net",
-		},
-		Text: r.FormValue("message"),
-	}
+	http.HandleFunc("/send", func(w http.ResponseWriter, r *http.Request) {
+		msg := whatsapp.TextMessage {
+			Info: whatsapp.MessageInfo{
+				RemoteJid: r.FormValue("receiver")+"@s.whatsapp.net",
+			},
+			Text: r.FormValue("message"),
+		}
 
-	msgId,err := wac.Send(msg)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "error sending message: %v", err)
-		os.Exit(1)		
-	} else {
-		fmt.Println("Message Sent -> ID : "+msgId)
-	}
+		msgId,err := wac.Send(msg)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error sending message: %v", err)
+		} else {
+			fmt.Println("Message Sent -> ID : "+msgId)
+		}
+	})
+
+	log.Fatal(http.ListenAndServe(":80", nil))
 }
 
 func login(wac *whatsapp.Conn) error {
