@@ -43,7 +43,7 @@ func main() {
 		}
 	})
 
-	log.Fatal(http.ListenAndServe(":80", nil))
+	log.Fatal(http.ListenAndServe(":8023", nil))
 }
 
 func login(wac *whatsapp.Conn) error {
@@ -103,4 +103,43 @@ func writeSession(session whatsapp.Session) error {
 		return err
 	}
 	return nil
+}
+
+func restoreSession() {
+	//create new WhatsApp connection
+	wac, err := whatsapp.NewConn(5 * time.Second)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error creating connection: %v\n", err)
+		return
+	}
+
+	//load saved session
+	session, err := readSession()
+	if err == nil {
+		//restore session
+		session, err = wac.RestoreWithSession(session)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "restoring failed: %v\n", err)
+			return
+		}
+	} else {
+		//no saved session -> regular login
+		qr := make(chan string)
+		go func() {
+			terminal := qrcodeTerminal.New()
+			terminal.Get(<-qr).Print()
+		}()
+		session, err = wac.Login(qr)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error during login: %v\n", err)
+		}
+	}
+
+	//save session
+	err = writeSession(session)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error saving session: %v\n", err)
+	}
+
+	fmt.Printf("login successful, session: %v\n", session)
 }
