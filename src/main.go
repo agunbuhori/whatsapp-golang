@@ -43,7 +43,7 @@ func main() {
 		}
 	})
 
-	log.Fatal(http.ListenAndServe(":8023", nil))
+	log.Fatal(http.ListenAndServe(":80", nil))
 }
 
 func login(wac *whatsapp.Conn) error {
